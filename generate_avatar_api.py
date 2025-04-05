@@ -7,8 +7,14 @@ app = Flask(__name__)
 
 # Create a folder for generated images
 OUTPUT_DIR = "generated_avatars"
-if not os.path.isdir(OUTPUT_DIR):
+OUTPUT_DIR = "generated_avatars"
+
+# ✅ Safe check to prevent FileExistsError
+if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
+elif not os.path.isdir(OUTPUT_DIR):
+    raise Exception(f"'{OUTPUT_DIR}' exists but is not a directory")
+
 
 
 @app.route('/api/generate-avatar', methods=['POST'])
