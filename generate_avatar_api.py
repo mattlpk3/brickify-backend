@@ -12,7 +12,8 @@ openai.api_key = os.environ.get("OPENAI_API_KEY") or "sk-...your-real-api-key...
 # 📁 Output folder
 OUTPUT_DIR = "generated_avatars"
 if not os.path.isdir(OUTPUT_DIR):
-    os.makedirs(OUTPUT_DIR)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 
 # 🧠 Use GPT-4o to generate prompt from user inputs
 def generate_prompt(photo_path, background, pose, phrase):
