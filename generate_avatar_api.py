@@ -10,6 +10,7 @@ OUTPUT_DIR = "generated_avatars"
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
+
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
     try:
