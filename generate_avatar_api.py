@@ -58,4 +58,5 @@ def generate_avatar():
         return jsonify({"success": 0, "message": str(e)})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=10000)
+
