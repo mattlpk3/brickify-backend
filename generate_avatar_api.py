@@ -9,7 +9,7 @@ app = Flask(__name__)
 OUTPUT_DIR = "generated_avatars"
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
-
+# Temporary test update
 
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
