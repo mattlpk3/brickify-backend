@@ -1,0 +1,5 @@
+brickify-backend/
+├── generate_avatar_api.py
+├── requirements.txt
+├── Procfile
+├── generated_avatars/      ✅ ← this must exist
