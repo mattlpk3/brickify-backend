@@ -6,8 +6,9 @@ import uuid
 app = Flask(__name__)
 
 # Create a folder for generated images
-OUTPUT_DIR = "generated_avatars"
-OUTPUT_DIR = "generated_avatars"
+OUTPUT_DIR = "generated_avatars_storage"
+OUTPUT_DIR = "generated_avatars_storage"
+
 
 # ✅ Safe check to prevent FileExistsError
 if not os.path.exists(OUTPUT_DIR):
