@@ -8,23 +8,27 @@ import openai
 app = Flask(__name__)
 CORS(app)
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+# 🔐 Load OpenAI API key securely
+openai.api_key = os.environ.get("OPENAI_API_KEY") or "your-actual-api-key"
 
+# 📁 Output folder
 OUTPUT_DIR = "generated_avatars"
-if not os.path.isdir(OUTPUT_DIR):
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# 🧠 Generate prompt from user input
 def generate_prompt(photo_path, background, pose, phrase):
-    return f"Create a LEGO-style minifigure avatar inside a realistic plastic BRICKIFY toy box. The character should have a strong resemblance to the photo uploaded here: {photo_path}. The background should be {background}, the pose or accessory should be {pose}, and the name text at the bottom of the box should say '{phrase}'. On the top of the toy box, include the BRICKIFY logo and small icons for Instagram, TikTok, and X."  
+    return f"Create a LEGO-style minifigure avatar inside a realistic BRICKIFY toy box. Match the uploaded photo here: {photo_path}. Background: {background}. Pose or Accessory: {pose}. Phrase: '{phrase}'. Include the BRICKIFY logo and small social icons (Instagram, TikTok, X) on top of the toy box."
 
+# 🎨 Use DALL·E 3 to generate image
 def generate_image(prompt):
-    response = openai.Image.create(
+    response = openai.images.generate(
         model="dall-e-3",
         prompt=prompt,
         size="1024x1024",
+        quality="standard",
         n=1
     )
-    return response['data'][0]['url']
+    return response.data[0].url
 
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
@@ -38,8 +42,7 @@ def generate_avatar():
             return jsonify({"success": 0, "message": "Missing required fields"})
 
         filename = secure_filename(photo.filename)
-        unique_filename = str(uuid.uuid4()) + "_" + filename
-        filepath = os.path.join(OUTPUT_DIR, unique_filename)
+        filepath = os.path.join(OUTPUT_DIR, f"{uuid.uuid4()}_{filename}")
         photo.save(filepath)
 
         prompt = generate_prompt(filepath, background, pose, phrase)
@@ -51,5 +54,4 @@ def generate_avatar():
         return jsonify({"success": 0, "message": str(e)})
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=10000)
