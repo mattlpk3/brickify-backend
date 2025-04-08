@@ -3,55 +3,53 @@ from flask_cors import CORS
 import openai
 import os
 
-# ✅ Flask Setup
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://trenchmoney.online"])
 
-# ✅ Environment Key (will fail loud if missing)
-openai.api_key = os.environ.get("OPENAI_API_KEY")
-if not openai.api_key:
-    raise EnvironmentError("Missing OPENAI_API_KEY")
+# 🔐 Your OpenAI API Key
+openai.api_key = os.environ.get("OPENAI_API_KEY") or "sk-...your-real-api-key..."
 
-# ✅ Prompt Generator
-def generate_prompt(background, pose, phrase):
-    return (
-        f"Create a LEGO-style minifigure avatar inside a BRICKIFY plastic toy box. "
-        f"The background is {background}, the pose or accessory is {pose}, "
-        f"and the name at the bottom says '{phrase}'. The box includes the BRICKIFY logo "
-        f"and LEGO-style icons for Instagram, TikTok, and X."
-    )
+# 🧠 Generate the prompt
+def generate_prompt(image_url, background, pose, phrase):
+    return f"""
+    Create a LEGO-style minifigure avatar inside a BRICKIFY toy box. 
+    The character should resemble the person in this photo: {image_url}.
+    The background should be {background}, pose or accessory should be {pose}, 
+    and the name text at the bottom of the box should say "{phrase}".
+    The BRICKIFY logo and icons for Instagram, TikTok, and X must be on top of the box.
+    """
 
-# ✅ Route Handler
-@app.route("/api/generate-avatar", methods=["POST"])
+@app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
     try:
-        # ✅ Get Fields
-        photo = request.files.get("photo")
-        background = request.form.get("background")
-        pose = request.form.get("pose")
-        phrase = request.form.get("phrase")
+        photo = request.files.get('photo')
+        background = request.form.get('background')
+        pose = request.form.get('pose')
+        phrase = request.form.get('phrase')
 
         if not all([photo, background, pose, phrase]):
             return jsonify({"success": 0, "message": "Missing required fields"}), 400
 
-        # ✅ Generate Prompt
-        prompt = generate_prompt(background, pose, phrase)
+        # Save photo temporarily to Render's /tmp directory
+        photo_path = f"/tmp/{photo.filename}"
+        photo.save(photo_path)
 
-        # ✅ Generate Image
-        response = openai.images.generate(
+        # Use GPT to generate image prompt
+        prompt = generate_prompt("photo attached", background, pose, phrase)
+
+        # Generate image from DALL·E 3
+        response = openai.Image.create(
             model="dall-e-3",
             prompt=prompt,
-            size="1024x1024",
-            n=1
+            n=1,
+            size="1024x1024"
         )
 
-        image_url = response.data[0].url
+        image_url = response['data'][0]['url']
         return jsonify({"success": 1, "image_url": image_url})
 
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)}), 500
 
-# ✅ Start Server
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
-
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=10000)
