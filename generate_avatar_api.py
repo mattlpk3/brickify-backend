@@ -1,3 +1,5 @@
+# ✅ Updated Flask backend to lock and apply the final BRICKIFY prompt structure
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import openai
@@ -6,62 +8,56 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# ✅ OpenAI API Key securely
-openai.api_key = os.environ.get("OPENAI_API_KEY") or "sk-..."
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ Generate final prompt with BRICKIFY official locked format
-def generate_prompt(background, pose, phrase):
-    return f"""
-    Generate a full 3D LEGO-style avatar figure inside a LEGO-style brick box with a transparent background. The box must include:
-    - The BRICKIFY logo at the top in a brick-style font
-    - Just below it, small LEGO-styled icons for @, Instagram, TikTok, and X
-    - At the bottom, display the phrase: '{phrase}'
-    - Background must be: {background}
-    - Pose or accessory must be: {pose}
-    - The LEGO figure inside must look like the uploaded photo and have a strong facial resemblance.
-    Do not change the box structure or elements — always follow the locked BRICKIFY layout.
-    """
+# Locked prompt template
+LOCKED_PROMPT_TEMPLATE = (
+    "Create a 3D LEGO-style avatar of the person in the uploaded image. "
+    "The figure must closely resemble their face and wear appropriate LEGO-style features. "
+    "Pose the figure in a dynamic way based on the input provided. "
+    "Place it inside a LEGO-style 3D red brick box with a transparent background and a {background} scene. "
+    "The top of the box must say 'BRICKIFY' in a bold LEGO-style font. "
+    "Directly underneath, show these icons in this exact order: @ symbol, Instagram logo, TikTok logo, X (Twitter) logo — small and clean. "
+    "At the bottom, show a yellow LEGO-style nameplate with the following name or phrase: {phrase}. "
+    "The box must include 3D brick studs on top and feel like a real LEGO box and around it should be transparent background if possible. "
+    "Style must remain consistent, professional, and unique to BRICKIFY."
+)
 
-# ✅ Call DALL·E 3 API to generate the image
-async def generate_image(prompt):
-    response = openai.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        size="1024x1024",
-        quality="standard",
-        n=1
-    )
-    return response.data[0].url
-
-# ✅ API endpoint to generate avatar
-@app.route('/api/generate-avatar', methods=['POST'])
+@app.route("/api/generate-avatar", methods=["POST"])
 def generate_avatar():
+    if 'photo' not in request.files:
+        return jsonify({"success": 0, "message": "Missing image"}), 400
+
+    photo = request.files['photo']
+    background = request.form.get("background")
+    pose = request.form.get("pose")
+    phrase = request.form.get("phrase")
+
+    if not all([photo, background, pose, phrase]):
+        return jsonify({"success": 0, "message": "Missing required fields"}), 400
+
+    # Construct the final prompt using the locked format
+    final_prompt = LOCKED_PROMPT_TEMPLATE.format(
+        background=background,
+        phrase=phrase
+    ) + f"\n\nPose or Accessory: {pose}"
+
     try:
-        # Get user inputs
-        photo = request.files.get('photo')
-        background = request.form.get('background')
-        pose = request.form.get('pose')
-        phrase = request.form.get('phrase')
-
-        if not all([photo, background, pose, phrase]):
-            return jsonify({"success": 0, "message": "Missing required fields"})
-
-        # 👉 Generate the official locked BRICKIFY prompt
-        prompt = generate_prompt(background, pose, phrase)
-
-        # ✅ Generate the image
-        image_url = openai.images.generate(
+        # Call OpenAI Image API
+        response = openai.images.generate(
             model="dall-e-3",
-            prompt=prompt,
+            prompt=final_prompt,
             size="1024x1024",
             quality="standard",
-            n=1
-        ).data[0].url
+            n=1,
+            response_format="url"
+        )
 
+        image_url = response.data[0].url
         return jsonify({"success": 1, "image_url": image_url})
 
     except Exception as e:
-        return jsonify({"success": 0, "message": str(e)})
+        return jsonify({"success": 0, "message": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    app.run(debug=True)
