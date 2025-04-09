@@ -1,12 +1,16 @@
 # ✅ Updated Flask backend to lock and apply the final BRICKIFY prompt structure
 
-from flask import Flask, request, jsonify
+from flask import Flask
 from flask_cors import CORS
 import openai
 import os
 
+
 app = Flask(__name__)
-CORS(app)
+
+# Allow only your frontend
+CORS(app, resources={r"/api/*": {"origins": "https://trenchmoney.online"}})
+
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
