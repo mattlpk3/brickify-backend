@@ -5,11 +5,12 @@ from openai import OpenAI
 from werkzeug.utils import secure_filename
 import tempfile
 
+
 # Initialize OpenAI with GPT-4o support
 client = OpenAI()
 
 app = Flask(__name__)
-CORS(app, origins=["https://trenchmoney.online"])
+CORS(app, origins=["https://trenchmoney.online"])  # <-- 🔥 VERY IMPORTANT
 
 @app.route("/api/generate-avatar", methods=["POST"])
 def generate_avatar():
