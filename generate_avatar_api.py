@@ -6,27 +6,32 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# ✅ Set up GPT-4o-compatible OpenAI client
+# ✅ Initialize OpenAI client using new SDK format
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY") or "sk-...")
 
-# ✅ Locked BRICKIFY prompt
+# ✅ Generate locked BRICKIFY prompt
 def generate_prompt(background, pose, phrase):
     return f"""
-    Generate a full 3D LEGO-style avatar figure inside a LEGO-style brick box with a transparent background. The box must include:
-    - The BRICKIFY logo at the top in a brick-style font
-    - Just below it, small LEGO-styled icons for @, Instagram, TikTok, and X
-    - At the bottom, display the phrase: '{phrase}'
-    - Background must be: {background}
-    - Pose or accessory must be: {pose}
-    - The LEGO figure inside must look like the uploaded photo and have a strong facial resemblance.
-    Do not change the box structure or elements — always follow the locked BRICKIFY layout.
+    Create a 3D LEGO-style avatar of the person in the uploaded image.
+    The figure must closely resemble their face and wear appropriate LEGO-style features.
+    Pose the figure in a dynamic way based on the input provided.
+
+    Place it inside a LEGO-style 3D red brick box with a transparent background and a {background} scene.
+    The top of the box must say 'BRICKIFY' in a bold LEGO-style font.
+    Directly underneath, show these icons in this exact order: @ symbol, Instagram logo, TikTok logo, X (Twitter) logo — small and clean.
+    At the bottom, show a yellow LEGO-style nameplate with the following name or phrase: {phrase}.
+    The box must include 3D brick studs on top and feel like a real LEGO box and around it should be transparent background if possible.
+    Style must remain consistent, professional, and unique to BRICKIFY.
+
+    Pose or Accessory: {pose}
+    Background: {background}
+    Name or Phrase: {phrase}
     """
 
-# ✅ Image generation using DALL·E 3 (GPT-4o capable)
+# ✅ API endpoint for generating avatars
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
     try:
-        # Get user inputs
         photo = request.files.get('photo')
         background = request.form.get('background')
         pose = request.form.get('pose')
@@ -35,15 +40,16 @@ def generate_avatar():
         if not all([photo, background, pose, phrase]):
             return jsonify({"success": 0, "message": "Missing required fields"})
 
-        # Generate prompt
+        # Generate the official BRICKIFY prompt
         prompt = generate_prompt(background, pose, phrase)
 
-        # Generate image from GPT-4o (DALL·E 3 model)
+        # Use GPT-4o (via DALL·E 3) to generate the image
         response = client.images.generate(
             model="dall-e-3",
             prompt=prompt,
-            n=1,
             size="1024x1024",
+            quality="standard",
+            n=1,
             response_format="url",
             style="vivid"
         )
@@ -57,4 +63,3 @@ def generate_avatar():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
-
