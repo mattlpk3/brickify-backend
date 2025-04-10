@@ -22,21 +22,6 @@ def generate_prompt(background, pose, phrase):
     Do not change the box structure or elements — always follow the locked BRICKIFY layout.
     """
 
-# ✅ Call DALL·E 3 API to generate the image
-async def generate_image(prompt):
-    response = client.images.generate(
-    model="dall-e-3",
-    prompt=prompt,
-    n=1,
-    size="1024x1024",
-    response_format="url",
-    style="vivid",
-    transparent=True  # 💡 Important for transparency
-)
-    )
-    return response.data[0].url
-
-
 # ✅ API endpoint to generate avatar
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
@@ -51,7 +36,7 @@ def generate_avatar():
 
         prompt = generate_prompt(background, pose, phrase)
 
-        # ✅ Generate image from prompt only — do NOT pass image or transparency
+        # ✅ Generate image from prompt only — image file is not used by DALL·E yet
         response = openai.images.generate(
             model="dall-e-3",
             prompt=prompt,
@@ -67,3 +52,5 @@ def generate_avatar():
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)})
 
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=10000)
