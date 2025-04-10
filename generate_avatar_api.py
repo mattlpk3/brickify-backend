@@ -41,7 +41,6 @@ async def generate_image(prompt):
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
     try:
-        # Get user inputs
         photo = request.files.get('photo')
         background = request.form.get('background')
         pose = request.form.get('pose')
@@ -50,22 +49,21 @@ def generate_avatar():
         if not all([photo, background, pose, phrase]):
             return jsonify({"success": 0, "message": "Missing required fields"})
 
-        # 👉 Generate the official locked BRICKIFY prompt
         prompt = generate_prompt(background, pose, phrase)
 
-        # ✅ Generate the image
-        image_url = openai.images.generate(
+        # ✅ Generate image from prompt only — do NOT pass image or transparency
+        response = openai.images.generate(
             model="dall-e-3",
             prompt=prompt,
             size="1024x1024",
             quality="standard",
             n=1
-        ).data[0].url
+        )
+
+        image_url = response.data[0].url
 
         return jsonify({"success": 1, "image_url": image_url})
 
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
