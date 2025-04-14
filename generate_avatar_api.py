@@ -1,34 +1,49 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from openai import OpenAI
+import openai
 import os
 
 app = Flask(__name__)
 CORS(app)
 
-# ✅ Initialize OpenAI client using new SDK format
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY") or "sk-...")
+# ✅ OpenAI API Key securely
+openai.api_key = os.environ.get("OPENAI_API_KEY") or "sk-..."
 
-# ✅ Generate locked BRICKIFY prompt
-def generate_prompt(background, pose, phrase):
-    return f"""
-    Create a 3D LEGO-style avatar of the person in the uploaded image.
-    The figure must closely resemble their face and wear appropriate LEGO-style features.
-    Pose the figure in a dynamic way based on the input provided.
+# ✅ GPT-4o Prompt Template Filler
+async def fill_prompt_with_gpt4o(background, pose, phrase):
+    system_prompt = """
+You are a helpful assistant that generates a BRICKIFY image prompt by inserting user-provided variables into a locked template.
+The structure must NEVER change. Just fill in the user inputs exactly where they belong.
+Here is the locked prompt:
 
-    Place it inside a LEGO-style 3D red brick box with a transparent background and a {background} scene.
-    The top of the box must say 'BRICKIFY' in a bold LEGO-style font.
-    Directly underneath, show these icons in this exact order: @ symbol, Instagram logo, TikTok logo, X (Twitter) logo — small and clean.
-    At the bottom, show a yellow LEGO-style nameplate with the following name or phrase: {phrase}.
-    The box must include 3D brick studs on top and feel like a real LEGO box and around it should be transparent background if possible.
-    Style must remain consistent, professional, and unique to BRICKIFY.
+"""
+Generate a full 3D LEGO-style avatar figure inside a LEGO-style brick box with a transparent background. The box must include:
+- The BRICKIFY logo at the top in a brick-style font
+- Just below it, small LEGO-styled icons for @, Instagram, TikTok, and X
+- At the bottom, display the phrase: '{phrase}'
+- Background must be: {background}
+- Pose or accessory must be: {pose}
+- The LEGO figure inside must look like the uploaded photo and have a strong facial resemblance.
+Do not change the box structure or elements — always follow the locked BRICKIFY layout.
+"""
 
-    Pose or Accessory: {pose}
-    Background: {background}
-    Name or Phrase: {phrase}
-    """
+    user_input = f"""
+Background: {background}
+Pose or Accessory: {pose}
+Phrase: {phrase}
+"""
 
-# ✅ API endpoint for generating avatars
+    response = openai.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_input}
+        ]
+    )
+
+    return response.choices[0].message.content.strip()
+
+# ✅ API endpoint to generate avatar
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
     try:
@@ -40,21 +55,33 @@ def generate_avatar():
         if not all([photo, background, pose, phrase]):
             return jsonify({"success": 0, "message": "Missing required fields"})
 
-        # Generate the official BRICKIFY prompt
-        prompt = generate_prompt(background, pose, phrase)
+        # 🔁 Fill in locked prompt using GPT-4o
+        final_prompt = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You only fill in variables in this locked BRICKIFY prompt structure. Do NOT change any wording, only inject variables."},
+                {"role": "user", "content": f"Fill in this:
+Generate a full 3D LEGO-style avatar figure inside a LEGO-style brick box with a transparent background. The box must include:
+- The BRICKIFY logo at the top in a brick-style font
+- Just below it, small LEGO-styled icons for @, Instagram, TikTok, and X
+- At the bottom, display the phrase: '{phrase}'
+- Background must be: {background}
+- Pose or accessory must be: {pose}
+- The LEGO figure inside must look like the uploaded photo and have a strong facial resemblance.
+Do not change the box structure or elements — always follow the locked BRICKIFY layout."}
+            ]
+        ).choices[0].message.content.strip()
 
-        # Use GPT-4o (via DALL·E 3) to generate the image
-        response = client.images.generate(
+        # ✅ Generate image from DALL-E
+        image_response = openai.images.generate(
             model="dall-e-3",
-            prompt=prompt,
+            prompt=final_prompt,
             size="1024x1024",
             quality="standard",
-            n=1,
-            response_format="url",
-            style="vivid"
+            n=1
         )
 
-        image_url = response.data[0].url
+        image_url = image_response.data[0].url
 
         return jsonify({"success": 1, "image_url": image_url})
 
