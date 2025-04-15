@@ -1,14 +1,15 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
+from openai import OpenAI
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://trenchmoney.online"])
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+# ✅ Initialize OpenAI client with v1.x SDK
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# 🧠 Step 1: Let GPT-4o generate the final structured prompt
+# 🔁 Step 1: Generate locked BRICKIFY prompt using GPT-4o
 def generate_structured_prompt(background, pose, phrase):
     system_instruction = "You are a prompt generator that outputs a perfectly formatted BRICKIFY prompt. Do not change structure."
 
@@ -20,16 +21,16 @@ Pose or Accessory: {pose}
 Name or Phrase: {phrase}
 """
 
-    gpt_response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": system_instruction},
             {"role": "user", "content": user_input}
         ]
     )
-    return gpt_response['choices'][0]['message']['content']
+    return response.choices[0].message.content
 
-
+# 🧱 Step 2: Endpoint to generate avatar
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
     try:
@@ -41,11 +42,11 @@ def generate_avatar():
         if not all([photo, background, pose, phrase]):
             return jsonify({"success": 0, "message": "Missing required fields"})
 
-        # 🧠 Get final DALL·E prompt from GPT-4o
+        # 🔁 Use GPT-4o to format the prompt
         refined_prompt = generate_structured_prompt(background, pose, phrase)
 
-        # 🎨 Now generate the image with DALL·E 3 using refined prompt
-        image_response = openai.images.generate(
+        # 🎨 Send prompt to DALL·E 3 for image generation
+        image_response = client.images.generate(
             model="dall-e-3",
             prompt=refined_prompt,
             size="1024x1024",
@@ -60,5 +61,6 @@ def generate_avatar():
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)})
 
+# 🚀 Run the Flask app
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
