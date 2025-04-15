@@ -4,7 +4,8 @@ import openai
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://trenchmoney.online"])
+
 
 # 🔐 Secure your API key here
 openai.api_key = os.environ.get("OPENAI_API_KEY") or "sk-..."
