@@ -1,5 +1,5 @@
 flask
 werkzeug
 flask-cors
-openai==1.13.3
+openai>=1.13.3
 
