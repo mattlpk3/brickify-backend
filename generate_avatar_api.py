@@ -1,19 +1,20 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from openai import OpenAI
-import os
 
 app = Flask(__name__)
 CORS(app, origins=["https://trenchmoney.online"])
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# Step 1: Let GPT-4o generate the final structured prompt
-def generate_structured_prompt(background, pose, phrase):
-    system_instruction = (
+# Step 1: Generate strong BRICKIFY prompt via GPT-4o
+def generate_brickify_prompt(background, pose, phrase):
+    system_msg = (
         "You are generating a prompt for an official BRICKIFY avatar that follows an exact locked image format. "
-        "Do not change the structure. The image must match previously confirmed outputs, including LEGO-style brick box, logo, icons, studs on top, and nameplate. "
-        "Be extremely specific and force the visual format through strong phrasing. This prompt will be used for DALL·E 3."
+        "The image must replicate the previously confirmed layout exactly: 3D LEGO figure, red LEGO-style box, BRICKIFY logo, "
+        "icons (@, Instagram, TikTok, X), yellow nameplate at the bottom, transparent background, brick studs on top. "
+        "Force DALL·E 3 to follow this layout using very strong visual phrasing."
     )
 
     user_input = f"""
@@ -24,48 +25,48 @@ Pose or Accessory: {pose}
 Name or Phrase: {phrase}
 """
 
-    gpt_response = client.chat.completions.create(
+    chat = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": system_instruction},
+            {"role": "system", "content": system_msg},
             {"role": "user", "content": user_input}
         ]
     )
-    return gpt_response.choices[0].message.content
+    return chat.choices[0].message.content
 
-
-@app.route('/api/generate-avatar', methods=['POST'])
+@app.route("/api/generate-avatar", methods=["POST"])
 def generate_avatar():
     try:
-        photo = request.files.get('photo')
-        background = request.form.get('background')
-        pose = request.form.get('pose')
-        phrase = request.form.get('phrase')
+        photo = request.files.get("photo")
+        background = request.form.get("background")
+        pose = request.form.get("pose")
+        phrase = request.form.get("phrase")
 
         if not all([photo, background, pose, phrase]):
-            return jsonify({"success": 0, "message": "Missing required fields"})
+            return jsonify({"success": 0, "message": "Missing required fields"}), 400
 
-        # Step 2: Get final DALL·E prompt from GPT-4o
-        refined_prompt = generate_structured_prompt(background, pose, phrase)
+        # Generate the BRICKIFY image prompt
+        prompt = generate_brickify_prompt(background, pose, phrase)
 
-        # Step 3: Generate the image with DALL·E 3 using refined prompt
-        image_response = client.images.generate(
+        # Generate image via DALL·E 3
+        image_resp = client.images.generate(
             model="dall-e-3",
-            prompt=refined_prompt,
+            prompt=prompt,
+            n=1,
             size="1024x1024",
             quality="standard",
-            response_format="url",
-            n=1
+            response_format="url"
         )
 
-        image_url = image_response.data[0].url
+        image_url = image_resp.data[0].url
         return jsonify({"success": 1, "image_url": image_url})
 
     except Exception as e:
-        return jsonify({"success": 0, "message": str(e)})
+        return jsonify({"success": 0, "message": str(e)}), 500
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
 
