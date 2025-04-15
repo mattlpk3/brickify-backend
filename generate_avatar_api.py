@@ -1,17 +1,14 @@
+import os
+import openai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
-import os
 
 app = Flask(__name__)
-CORS(app, origins=["https://trenchmoney.online"])
+CORS(app, origins=["https://trenchmoney.online"])  # ✅ This was missing
 
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-# ✅ Set your OpenAI key (in production, use environment variables)
-openai.api_key = os.getenv("OPENAI_API_KEY") or "sk-..."
-
-# ✅ Step 1: Generate the BRICKIFY prompt using GPT-4o
-def generate_brickify_prompt(description, background, pose, name):
+def generate_brickify_prompt(background, pose, name):
     system_prompt = (
         "You are a prompt generator that formats user photo descriptions into a locked LEGO-style BRICKIFY avatar prompt. "
         "Do not change the format or style."
@@ -25,19 +22,18 @@ Pose or Accessory: {pose}
 Name or Phrase: {name}
 """
 
-    response = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
+            {"role": "user", "content": user_prompt}
         ]
     )
 
-    return response['choices'][0]['message']['content']
+    return response.choices[0].message.content.strip()
 
-# ✅ Step 2: Generate the image with DALL·E 3
 def generate_brickify_image(prompt):
-    response = openai.Image.create(
+    response = openai.images.generate(
         model="dall-e-3",
         prompt=prompt,
         size="1024x1024",
@@ -45,36 +41,29 @@ def generate_brickify_image(prompt):
         quality="standard",
         n=1
     )
-    return response['data'][0]['url']
+    return response.data[0].url
 
-# ✅ Avatar generation endpoint
-@app.route('/api/generate-avatar', methods=['POST'])
+@app.route("/api/generate-avatar", methods=["POST"])
 def generate_avatar():
     try:
-        # Get data from form
-        photo = request.files.get('photo')  # We do not use it in prompt
-        background = request.form.get('background')
-        pose = request.form.get('pose')
-        name = request.form.get('phrase')
+        image = request.files.get("image")
+        background = request.form.get("background")
+        pose = request.form.get("pose")
+        name = request.form.get("name")
 
-        if not all([background, pose, name]):
-            return jsonify({"success": 0, "message": "Missing required fields"})
+        if not all([image, background, pose, name]):
+            return jsonify({"error": "Missing one or more fields"}), 400
 
-        # 💡 Optional: provide a short manual description of the uploaded photo
-        # (because OpenAI API here does not handle image input)
-        description = "Image of a person to convert into a LEGO-style avatar"
+        # Step 1: Generate prompt using GPT-4o
+        prompt = generate_brickify_prompt(background, pose, name)
 
-        # Generate prompt using GPT-4o
-        final_prompt = generate_brickify_prompt(description, background, pose, name)
-
-        # Generate image using DALL·E 3
-        image_url = generate_brickify_image(final_prompt)
+        # Step 2: Generate image from prompt using DALL·E 3
+        image_url = generate_brickify_image(prompt)
 
         return jsonify({"success": 1, "image_url": image_url})
 
     except Exception as e:
-        return jsonify({"success": 0, "message": str(e)})
+        return jsonify({"success": 0, "error": str(e)}), 500
 
-# ✅ Run Flask
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+if __name__ == "__main__":
+    app.run(debug=True)
