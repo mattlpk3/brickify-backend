@@ -8,7 +8,7 @@ CORS(app, origins=["https://trenchmoney.online"])
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-# 🧠 Step 1: Enhanced GPT-4o Prompt Generator
+# GPT-4o: Generate ultra-detailed visual prompt
 def generate_structured_prompt(background, pose, phrase):
     system_instruction = (
         "You are generating a prompt for an official BRICKIFY avatar that follows an exact locked image format. "
@@ -17,19 +17,18 @@ def generate_structured_prompt(background, pose, phrase):
     )
 
     user_input = f"""
-Render a highly detailed 3D LEGO-style avatar of a real person based on the uploaded photo. The figure should have a LEGO-like head, body, and hands, with a strong resemblance to the real face. Pose the figure in a dynamic way based on this input: {pose}. 
+Render a highly detailed 3D LEGO-style avatar of a real person based on the uploaded photo. The figure should have a LEGO-like head, body, and hands, with a strong resemblance to the real face. Pose the figure in a dynamic way: {pose}. 
 
-The figure must be placed inside a red LEGO-style brick box with a transparent background. 
+The figure must be inside a red LEGO-style brick box on a transparent background.
 
 The box must include:
-- The word 'BRICKIFY' at the top in a bold LEGO-style font.
-- Directly underneath: these small and clean icons in this exact order — @, Instagram logo, TikTok logo, and X (Twitter) logo.
-- The background scene must be: {background}.
-- 3D LEGO brick studs must be on top of the box.
-- At the bottom, show a yellow LEGO-style nameplate with the name or phrase: {phrase}.
-- The entire box must feel like an official LEGO product with clear lighting, clean render, and transparency around the object.
+- The word 'BRICKIFY' at the top in bold LEGO-style font.
+- Underneath it: @, Instagram, TikTok, and X logos in this exact order — clean and small.
+- Scene background: {background}.
+- 3D LEGO brick studs on top.
+- Bottom: a yellow LEGO nameplate that says: {phrase}.
 
-Never change this structure.
+The full box and avatar must resemble a professional LEGO toy render. Make the figure stylized and animated with sharp lighting.
 """
 
     response = openai.ChatCompletion.create(
@@ -40,26 +39,27 @@ Never change this structure.
         ]
     )
 
-    return response['choices'][0]['message']['content']
+    return response["choices"][0]["message"]["content"]
 
+# API Endpoint
 @app.route('/api/generate-avatar', methods=['POST'])
 def generate_avatar():
     try:
-        photo = request.files.get('photo')
-        background = request.form.get('background')
-        pose = request.form.get('pose')
-        phrase = request.form.get('phrase')
+        photo = request.files.get("photo")
+        background = request.form.get("background")
+        pose = request.form.get("pose")
+        phrase = request.form.get("phrase")
 
         if not all([photo, background, pose, phrase]):
-            return jsonify({"success": 0, "message": "Missing required fields"})
+            return jsonify({"success": 0, "message": "Missing fields"}), 400
 
-        # Step 1: Generate full detailed prompt
-        final_prompt = generate_structured_prompt(background, pose, phrase)
+        # Get locked prompt
+        prompt = generate_structured_prompt(background, pose, phrase)
 
-        # Step 2: Generate image from prompt
+        # Generate image
         image_response = openai.images.generate(
             model="dall-e-3",
-            prompt=final_prompt,
+            prompt=prompt,
             size="1024x1024",
             response_format="url",
             quality="standard",
@@ -70,8 +70,9 @@ def generate_avatar():
         return jsonify({"success": 1, "image_url": image_url})
 
     except Exception as e:
-        return jsonify({"success": 0, "message": str(e)})
+        return jsonify({"success": 0, "message": str(e)}), 500
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
 
