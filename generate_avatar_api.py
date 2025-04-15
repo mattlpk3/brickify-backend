@@ -17,14 +17,14 @@ def generate_brickify_prompt(background, pose, phrase):
         "Be extremely specific and force the visual format through strong phrasing. This prompt will be used for DALL·E 3."
     )
 
-    user_input = f"""
+        user_input = f"""
 Render a 3D LEGO-style avatar of a real person based on their face. The figure must have a yellow LEGO-style head, hands, and body with strong facial resemblance to the person.
 
 Pose the figure in a dynamic LEGO-style position based on this input: {pose}.
 
 Place the figure inside a bold red LEGO-style brick box that looks like an official LEGO product box. The box must be fully 3D, include realistic LEGO-style brick studs on the top, and appear slightly angled to show depth.
 
-On the top front of the box, show the word ‘BRICKIFY’ in large bold LEGO-style yellow text.
+On the top front of the box, show the word "BRICKIFY" in large bold LEGO-style yellow text.
 
 Directly underneath that, display these icons in this exact order — small, centered, and spaced evenly: @ symbol, Instagram logo, TikTok logo, and X (Twitter) logo.
 
@@ -32,15 +32,15 @@ The internal background scene inside the box must be: {background}.
 
 At the bottom of the box, include a yellow LEGO-style nameplate that says: {phrase}, using a bold font that matches the LEGO aesthetic.
 
-🧼 Surrounding the entire brick box and figure, make sure there is a **fully transparent background** — do not include shadows or external scenery. The box must float cleanly on a transparent canvas.
+Surrounding the entire brick box and figure, make sure there is a fully transparent background — do not include shadows or external scenery. The box must float cleanly on a transparent canvas.
 
 The image must resemble a high-quality LEGO product render with accurate depth, lighting, and 3D form.
 
 Background: {background}  
 Pose or Accessory: {pose}  
 Name or Phrase: {phrase}
-
 """
+
 
     response = client.chat.completions.create(
         model="gpt-4o",
