@@ -18,19 +18,28 @@ def generate_brickify_prompt(background, pose, phrase):
     )
 
     user_input = f"""
-Render a highly detailed 3D LEGO-style avatar of a real person based on their appearance. 
-The figure must have a LEGO-like head, body, and hands, with strong facial resemblance to the original person. 
-Pose the figure in a dynamic LEGO stance based on this input: {pose}. 
-Place the figure inside a red LEGO-style brick box that includes the word 'BRICKIFY' at the top in a bold LEGO font. 
-Directly beneath that, show these icons in this exact order: @ symbol, Instagram, TikTok, and X (Twitter) — clean and centered. 
-The background must be a scene of: {background}. 
-The top of the box must have 3D LEGO-style brick studs. 
-At the bottom, include a yellow LEGO-style nameplate with this phrase: {phrase}. 
-The entire box and figure must appear on a transparent background and feel like an official LEGO product shot.
+Render a 3D LEGO-style avatar of a real person based on their face. The figure must have a yellow LEGO-style head, hands, and body with strong facial resemblance to the person.
 
-Background: {background}
-Pose or Accessory: {pose}
+Pose the figure in a dynamic LEGO-style position based on this input: {pose}.
+
+Place the figure inside a bold red LEGO-style brick box that looks like an official LEGO product box. The box must be fully 3D, include realistic LEGO-style brick studs on the top, and appear slightly angled to show depth.
+
+On the top front of the box, show the word ‘BRICKIFY’ in large bold LEGO-style yellow text.
+
+Directly underneath that, display these icons in this exact order — small, centered, and spaced evenly: @ symbol, Instagram logo, TikTok logo, and X (Twitter) logo.
+
+The internal background scene inside the box must be: {background}.
+
+At the bottom of the box, include a yellow LEGO-style nameplate that says: {phrase}, using a bold font that matches the LEGO aesthetic.
+
+🧼 Surrounding the entire brick box and figure, make sure there is a **fully transparent background** — do not include shadows or external scenery. The box must float cleanly on a transparent canvas.
+
+The image must resemble a high-quality LEGO product render with accurate depth, lighting, and 3D form.
+
+Background: {background}  
+Pose or Accessory: {pose}  
 Name or Phrase: {phrase}
+
 """
 
     response = client.chat.completions.create(
