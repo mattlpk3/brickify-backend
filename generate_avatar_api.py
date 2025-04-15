@@ -1,55 +1,64 @@
-import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from openai import OpenAI
+import openai
+import os
 
 app = Flask(__name__)
 CORS(app, origins=["https://trenchmoney.online"])
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+client = openai.OpenAI(api_key=openai.api_key)
 
-# Step 1: Generate strong BRICKIFY prompt via GPT-4o
+# 🔒 Locked BRICKIFY Prompt Instruction
 def generate_brickify_prompt(background, pose, phrase):
-    system_msg = (
+    system_instruction = (
         "You are generating a prompt for an official BRICKIFY avatar that follows an exact locked image format. "
-        "The image must replicate the previously confirmed layout exactly: 3D LEGO figure, red LEGO-style box, BRICKIFY logo, "
-        "icons (@, Instagram, TikTok, X), yellow nameplate at the bottom, transparent background, brick studs on top. "
-        "Force DALL·E 3 to follow this layout using very strong visual phrasing."
+        "Do not change the structure. The image must match previously confirmed outputs, including LEGO-style brick box, logo, icons, studs on top, and nameplate. "
+        "Be extremely specific and force the visual format through strong phrasing. This prompt will be used for DALL·E 3."
     )
 
     user_input = f"""
-Render a highly detailed 3D LEGO-style avatar of a real person based on the uploaded photo. The figure should have a LEGO-like head, body, and hands, with a strong resemblance to the real face. The figure must be inside a red LEGO-style brick box that includes the word 'BRICKIFY' at the top in a bold LEGO font, followed by these icons: @, Instagram, TikTok, and X (Twitter). The background must be a {background} scene. There must be 3D brick studs on top of the box and a yellow LEGO-style nameplate at the bottom that says: {phrase}. The entire box and figure must appear on a transparent background, and look like an authentic LEGO product shot.
+Render a highly detailed 3D LEGO-style avatar of a real person based on their appearance. 
+The figure must have a LEGO-like head, body, and hands, with strong facial resemblance to the original person. 
+Pose the figure in a dynamic LEGO stance based on this input: {pose}. 
+Place the figure inside a red LEGO-style brick box that includes the word 'BRICKIFY' at the top in a bold LEGO font. 
+Directly beneath that, show these icons in this exact order: @ symbol, Instagram, TikTok, and X (Twitter) — clean and centered. 
+The background must be a scene of: {background}. 
+The top of the box must have 3D LEGO-style brick studs. 
+At the bottom, include a yellow LEGO-style nameplate with this phrase: {phrase}. 
+The entire box and figure must appear on a transparent background and feel like an official LEGO product shot.
 
 Background: {background}
 Pose or Accessory: {pose}
 Name or Phrase: {phrase}
 """
 
-    chat = client.chat.completions.create(
+    response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": system_msg},
+            {"role": "system", "content": system_instruction},
             {"role": "user", "content": user_input}
         ]
     )
-    return chat.choices[0].message.content
 
+    return response.choices[0].message.content.strip()
+
+# 🚀 API Endpoint
 @app.route("/api/generate-avatar", methods=["POST"])
 def generate_avatar():
     try:
-        photo = request.files.get("photo")
         background = request.form.get("background")
         pose = request.form.get("pose")
         phrase = request.form.get("phrase")
 
-        if not all([photo, background, pose, phrase]):
+        if not all([background, pose, phrase]):
             return jsonify({"success": 0, "message": "Missing required fields"}), 400
 
-        # Generate the BRICKIFY image prompt
+        # Generate locked prompt from GPT-4o
         prompt = generate_brickify_prompt(background, pose, phrase)
 
-        # Generate image via DALL·E 3
-        image_resp = client.images.generate(
+        # Generate image with DALL·E 3
+        image_response = client.images.generate(
             model="dall-e-3",
             prompt=prompt,
             n=1,
@@ -58,15 +67,13 @@ def generate_avatar():
             response_format="url"
         )
 
-        image_url = image_resp.data[0].url
+        image_url = image_response.data[0].url
         return jsonify({"success": 1, "image_url": image_url})
 
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)}), 500
 
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)
 
 
