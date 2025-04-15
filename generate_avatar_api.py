@@ -17,7 +17,7 @@ def generate_brickify_prompt(background, pose, phrase):
         "Be extremely specific and force the visual format through strong phrasing. This prompt will be used for DALL·E 3."
     )
 
-        user_input = f"""
+            user_input = f"""
 Render a 3D LEGO-style avatar of a real person based on their face. The figure must have a yellow LEGO-style head, hands, and body with strong facial resemblance to the person.
 
 Pose the figure in a dynamic LEGO-style position based on this input: {pose}.
@@ -32,7 +32,7 @@ The internal background scene inside the box must be: {background}.
 
 At the bottom of the box, include a yellow LEGO-style nameplate that says: {phrase}, using a bold font that matches the LEGO aesthetic.
 
-Surrounding the entire brick box and figure, make sure there is a fully transparent background — do not include shadows or external scenery. The box must float cleanly on a transparent canvas.
+Surround the entire brick box and figure with a fully transparent background. Do not include shadows or any external scenery. The box should float cleanly on a transparent canvas.
 
 The image must resemble a high-quality LEGO product render with accurate depth, lighting, and 3D form.
 
@@ -40,6 +40,7 @@ Background: {background}
 Pose or Accessory: {pose}  
 Name or Phrase: {phrase}
 """
+
 
 
     response = client.chat.completions.create(
