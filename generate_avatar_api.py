@@ -9,7 +9,6 @@ CORS(app, origins=["https://trenchmoney.online"])
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=openai.api_key)
 
-# 🔒 Locked BRICKIFY Prompt Instruction
 def generate_brickify_prompt(background, pose, phrase):
     system_instruction = (
         "You are generating a prompt for an official BRICKIFY avatar that follows an exact locked image format. "
@@ -17,31 +16,19 @@ def generate_brickify_prompt(background, pose, phrase):
         "Be extremely specific and force the visual format through strong phrasing. This prompt will be used for DALL·E 3."
     )
 
-            user_input = f"""
-Render a 3D LEGO-style avatar of a real person based on their face. The figure must have a yellow LEGO-style head, hands, and body with strong facial resemblance to the person.
+    user_input = f"""
+Create a 3D LEGO-style avatar of the person in the uploaded image. The figure must closely resemble their face and wear appropriate LEGO-style features. 
+Pose the figure in a dynamic way based on the input provided. 
+Place it inside a LEGO-style 3D red brick box with a transparent background and a {background} scene. 
+The top of the box must say 'BRICKIFY' in a bold LEGO-style font. 
+Directly underneath, show these icons in this exact order: @ symbol, Instagram logo, TikTok logo, X (Twitter) logo — small and clean. 
+At the bottom, show a yellow LEGO-style nameplate with the following name or phrase: {phrase}. 
+The box must include 3D brick studs on top and feel like a real LEGO box. Style must remain consistent, professional, and unique to BRICKIFY and around brick should be transparent background everytime.
 
-Pose the figure in a dynamic LEGO-style position based on this input: {pose}.
-
-Place the figure inside a bold red LEGO-style brick box that looks like an official LEGO product box. The box must be fully 3D, include realistic LEGO-style brick studs on the top, and appear slightly angled to show depth.
-
-On the top front of the box, show the word "BRICKIFY" in large bold LEGO-style yellow text.
-
-Directly underneath that, display these icons in this exact order — small, centered, and spaced evenly: @ symbol, Instagram logo, TikTok logo, and X (Twitter) logo.
-
-The internal background scene inside the box must be: {background}.
-
-At the bottom of the box, include a yellow LEGO-style nameplate that says: {phrase}, using a bold font that matches the LEGO aesthetic.
-
-Surround the entire brick box and figure with a fully transparent background. Do not include shadows or any external scenery. The box should float cleanly on a transparent canvas.
-
-The image must resemble a high-quality LEGO product render with accurate depth, lighting, and 3D form.
-
-Background: {background}  
-Pose or Accessory: {pose}  
+Background: {background}
+Pose or Accessory: {pose}
 Name or Phrase: {phrase}
 """
-
-
 
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -53,7 +40,6 @@ Name or Phrase: {phrase}
 
     return response.choices[0].message.content.strip()
 
-# 🚀 API Endpoint
 @app.route("/api/generate-avatar", methods=["POST"])
 def generate_avatar():
     try:
@@ -62,17 +48,15 @@ def generate_avatar():
         phrase = request.form.get("phrase")
 
         if not all([background, pose, phrase]):
-            return jsonify({"success": 0, "message": "Missing required fields"}), 400
+            return jsonify({"success": 0, "message": f"Missing fields - BG: {background}, Pose: {pose}, Phrase: {phrase}"}), 400
 
-        # Generate locked prompt from GPT-4o
         prompt = generate_brickify_prompt(background, pose, phrase)
 
-        # Generate image with DALL·E 3
         image_response = client.images.generate(
             model="dall-e-3",
             prompt=prompt,
             n=1,
-            size="1024x1024",
+            size="1080x1350",
             quality="standard",
             response_format="url"
         )
@@ -85,5 +69,3 @@ def generate_avatar():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-
-
