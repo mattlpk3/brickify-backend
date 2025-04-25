@@ -6,9 +6,11 @@ import os
 app = Flask(__name__)
 CORS(app, origins=["https://trenchmoney.online"])
 
+# Set OpenAI API key
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=openai.api_key)
 
+# Locked BRICKIFY prompt generator
 def generate_brickify_prompt(background, pose, phrase):
     system_instruction = (
         "You are generating a prompt for an official BRICKIFY avatar that follows an exact locked image format. "
@@ -40,23 +42,30 @@ Name or Phrase: {phrase}
 
     return response.choices[0].message.content.strip()
 
+# Avatar Generation Endpoint
 @app.route("/api/generate-avatar", methods=["POST"])
 def generate_avatar():
     try:
-        background = request.form.get("background")
-        pose = request.form.get("pose")
-        phrase = request.form.get("phrase")
+        background = request.form.get("background", "").strip()
+        pose = request.form.get("pose", "").strip()
+        phrase = request.form.get("phrase", "").strip()
 
+        # Field validation
         if not all([background, pose, phrase]):
-            return jsonify({"success": 0, "message": f"Missing fields - BG: {background}, Pose: {pose}, Phrase: {phrase}"}), 400
+            return jsonify({
+                "success": 0,
+                "message": f"Missing fields - BG: {background}, Pose: {pose}, Phrase: {phrase}"
+            }), 400
 
+        # Prompt generation
         prompt = generate_brickify_prompt(background, pose, phrase)
 
+        # DALL·E 3 image generation
         image_response = client.images.generate(
             model="dall-e-3",
             prompt=prompt,
             n=1,
-            size="1080x1350",
+            size="1024x1792",
             quality="standard",
             response_format="url"
         )
@@ -67,5 +76,6 @@ def generate_avatar():
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)}), 500
 
+# Run locally or Render
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
